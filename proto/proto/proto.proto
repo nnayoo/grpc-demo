@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option go_package = "github.com/nnayoo/grpc-demo/proto";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.helloworld";
+option java_outer_classname = "HelloWorldProto";
+
+package proto;
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc Upload (Request) returns (Reply) {}
+  rpc ExCommand (Request) returns (Reply) {}
+  rpc Echo(Request)returns (Reply) {}
+}
+
+// The request message containing the user's name.
+message Request {
+  string name = 1;
+  bytes data = 2;
+}
+
+// The response message containing the greetings
+message Reply {
+  string message = 1;
+}
