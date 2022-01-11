@@ -28,8 +28,12 @@ import (
 	"net"
 	"os/exec"
 	"path"
+	"time"
 
 	pb "github.com/nnayoo/grpc-demo/proto/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"google.golang.org/grpc"
 )
@@ -43,6 +47,10 @@ var (
 type server struct {
 	pb.UnimplementedGreeterServer
 }
+
+const (
+	timestampFormat = time.StampNano
+)
 
 // Upload implements helloworld.GreeterServer
 func (s *server) Upload(ctx context.Context, in *pb.Request) (*pb.Reply, error) {
@@ -88,6 +96,33 @@ func (s *server) ExCommod(ctx context.Context, in *pb.Request) (*pb.Reply, error
 		return &pb.Reply{Message: "invalid command or not script file " + in.GetName()}, nil
 	}
 
+}
+
+func (s *server) Echo(ctx context.Context, in *pb.Request) (*pb.Reply, error) {
+	defer func() {
+		trailer := metadata.Pairs("timestamp", time.Now().Format(timestampFormat))
+		grpc.SetTrailer(ctx, trailer)
+	}()
+
+	// Read metadata from client.
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Errorf(codes.DataLoss, "UnaryEcho: failed to get metadata")
+	}
+	if t, ok := md["timestamp"]; ok {
+		fmt.Printf("timestamp from metadata:\n")
+		for i, e := range t {
+			fmt.Printf(" %d. %s\n", i, e)
+		}
+	}
+
+	// Create and send header.
+	header := metadata.New(map[string]string{"location": "MTV", "timestamp": time.Now().Format(timestampFormat)})
+	grpc.SendHeader(ctx, header)
+
+	fmt.Printf("request received: %v, sending echo\n", in)
+
+	return &pb.Reply{Message: in.Name}, nil
 }
 
 func main() {
